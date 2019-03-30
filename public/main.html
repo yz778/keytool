@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Simple web UI for using phpseclib to generate keys and encrypt/decrypt data. https://github.com/yz778/keytool"/>
+<title>KeyTool</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<style>
+*{font-family:sans-serif;font-size:14px;margin:0;padding:0}
+body{background-color:#e6f4ff}
+#menuDiv{background-color:#7CC6FE;padding:10px;position:fixed;top:0;width:100%}
+#formDiv{padding:10px;display:none;margin-top:90px}
+#footerDiv{position:fixed;left:0;bottom:0;width:100%;padding:10px;background-color:#7CC6FE;text-align:center}
+#footerDiv a{color:black;font-size:12px}
+textarea{font-family:monospace;font-size:14px}
+div.title{font-weight:bold;margin-bottom:10px}
+textarea{width:100%;border:1px solid #4B286D;padding:5px;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box}
+textarea:read-only{background-color:#F4F9F2}
+button{padding:5px}
+div.inputfield{margin-bottom:20px;display:none}
+.loading{margin-left:10px;background-color:yellow;padding:3px;font-size:10px}
+</style>
+</head>
+
+<body>
+<div id="menuDiv">
+	<div class="title">KeyTool</div>
+	<button id="btnGenerate">Generate New Key Pair</button>
+	<button id="btnEncrypt">Encrypt...</button>
+	<button id="btnDecrypt">Decrypt...</button>
+</div>
+
+<div id="formDiv">
+	<div class="inputfield">
+		<div class="label">Private Key</div>
+		<textarea id="privatekey" style="height:150px"></textarea>
+	</div>
+
+	<div class="inputfield">
+		<div class="label">Public Key</div>
+		<textarea id="publickey" style="height:100px"></textarea>
+	</div>
+
+	<div class="inputfield">
+		<div class="label">Plain Text</div>
+		<textarea id="plaintext" style="height:150px"></textarea>
+		<div><button id="btnEncryptDo">Encrypt</button></div>
+	</div>
+
+	<div class="inputfield">
+		<div class="label">Cipher Text</div>
+		<textarea id="ciphertext" style="height:150px"></textarea>
+		<div><button id="btnDecryptDo">Decrypt</button></div>
+	</div>
+
+	<div class="inputfield">
+		<div class="label">Output</div>
+		<textarea id="outputtext" style="height:150px" readonly></textarea>
+	</div>
+</div>
+<div id="footerDiv">
+	<a href="https://keytool.appspot.com">keytool.appspot.com</a>
+	&middot;
+	<a href="https://github.com/yz778/keytool">GitHub Repository</a>
+</div>
+</body>
+<script>
+$(document).ready(function() {
+	function showFields(fields, hideothers) {
+		$('#formDiv').show();
+		if (hideothers) $('.inputfield').hide();
+
+		fields.forEach(function(f) {
+			$(f).closest('.inputfield').show();
+		});
+	}
+
+	function hideFields(fields) {
+		fields.forEach(function(f) {
+			$(f).closest('.inputfield').hide();
+		});
+	}
+
+	$('#btnGenerate').click(function() {
+		var params = {
+			mode:'generate'
+		}
+		$.post('', params, function(data) {
+			showFields(['#privatekey', '#publickey'], true);
+			$('#privatekey').val(data.privatekey);
+			$('#publickey').val(data.publickey);
+		}, "json");
+	});
+
+	$('#btnEncrypt').click(function() {
+		showFields(['#publickey', '#plaintext'], true);
+		$('#plaintext').focus();
+	});
+
+	$('#btnEncryptDo').click(function() {
+		var $me = $(this);
+
+		if ($('#publickey').val() == '') {
+			alert('Public key is missing');
+			$('#publickey').focus();
+			return false;
+		}
+
+		if ($('#plaintext').val() == '') {
+			alert('Plain text is missing');
+			$('#plaintext').focus();
+			return false;
+		}
+
+		$(this).after('<span class="loading">...please wait...</span>');
+		$me.prop('disabled', true);
+		hideFields(['#outputtext']);
+
+		var params = {
+			mode:'encrypt',
+			publickey:$('#publickey').val(),
+			plaintext:$('#plaintext').val(),
+		}
+		$.post('', params, function(data) {
+			$('.loading').remove();
+			$me.prop('disabled', false);
+			showFields(['#outputtext'], false);
+			$('#ciphertext').val(data.ciphertext);
+			$('#outputtext').val(data.ciphertext).select();
+		}, "json");
+	});
+
+	$('#btnDecrypt').click(function() {
+		showFields(['#privatekey', '#ciphertext', '#btnDecryptDo'], true);
+		$('#ciphertext').focus();
+	});
+
+	$('#btnDecryptDo').click(function() {
+		var $me = $(this);
+
+		if ($('#privatekey').val() == '') {
+			alert('Private key is missing');
+			$('#privatekey').focus();
+			return false;
+		}
+
+		if ($('#ciphertext').val() == '') {
+			alert('Cipher text is missing');
+			$('#ciphertext').focus();
+			return false;
+		}
+
+		$(this).after('<span class="loading">...please wait...</span>');
+		$me.prop('disabled', true);
+		hideFields(['#outputtext']);
+
+		var params = {
+			mode:'decrypt',
+			privatekey:$('#privatekey').val(),
+			ciphertext:$('#ciphertext').val(),
+		}
+		$.post('', params, function(data) {
+			$('.loading').remove();
+			$me.prop('disabled', false);
+			showFields(['#outputtext'], false);
+			$('#plaintext').val(data.plaintext);
+			$('#outputtext').val(data.plaintext).select();
+		}, "json");
+	});
+});
+</script>
+</html>
